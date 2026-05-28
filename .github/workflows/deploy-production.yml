@@ -1,0 +1,63 @@
+name: Deploy to production
+'on':
+  workflow_dispatch: {}
+env:
+  DEST: production
+  SERVICE: test-fastapi-complex-production
+  REGISTRY: ghcr.io
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build and push image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        tags: ghcr.io/badri/test-fastapi-complex:${{ github.sha }},ghcr.io/badri/test-fastapi-complex:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    - name: Install Kamal
+      run: sudo gem install kamal
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.VMKIT_SSH_PRIVATE_KEY }}
+    - name: Resolve VM host
+      id: resolve
+      run: 'HOST=$(curl -sf -H "Authorization: Bearer ${{ secrets.VMKIT_SERVICE_KEY }}" "https://gateway.vmkit.dev/api/internal/instances/by-dest/production/host")
+
+        echo "host=$HOST" >> "$GITHUB_OUTPUT"
+
+        ssh-keygen -R "$HOST" 2>/dev/null || true
+
+        ssh-keyscan "$HOST" >> ~/.ssh/known_hosts'
+    - name: Render Kamal secrets
+      run: envsubst < .kamal/secrets.production.tpl > .kamal/secrets.production
+      env:
+        DEST_VM_HOST: ${{ steps.resolve.outputs.host }}
+        KAMAL_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        PRODUCTION_POSTGRES_PASSWORD: ${{ secrets.PRODUCTION_POSTGRES_PASSWORD }}
+        PRODUCTION_REDIS_URL: ${{ secrets.PRODUCTION_REDIS_URL }}
+    - name: Substitute DEST_VM_HOST in Kamal config
+      run: sed -i "s|\$DEST_VM_HOST|${DEST_VM_HOST}|g" config/deploy.production.yml
+      env:
+        DEST_VM_HOST: ${{ steps.resolve.outputs.host }}
+    - name: Deploy with Kamal
+      run: cp config/deploy.production.yml config/deploy.yml && cp .kamal/secrets.production .kamal/secrets && kamal deploy
+      env:
+        DEST_VM_HOST: ${{ steps.resolve.outputs.host }}
