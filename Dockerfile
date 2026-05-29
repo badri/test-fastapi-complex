@@ -21,6 +21,7 @@ FROM python:3.12.7-slim-bookworm AS runtime
 
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH"
 
 RUN groupadd -g 1000 app && useradd -u 1000 -g 1000 -m app
 
