@@ -78,7 +78,7 @@ jobs:
         DEST: ${{ inputs.dest }}
         DEST_VM_HOST: ${{ steps.resolve.outputs.host }}
     - name: Deploy with Kamal
-      run: cp config/deploy.${DEST}.yml config/deploy.yml && cp .kamal/secrets.${DEST} .kamal/secrets && kamal deploy
+      run: cp config/deploy.${DEST}.yml config/deploy.yml && cp .kamal/secrets.${DEST} .kamal/secrets && kamal accessory boot all && kamal deploy
       env:
         DEST: ${{ inputs.dest }}
         DEST_VM_HOST: ${{ steps.resolve.outputs.host }}
