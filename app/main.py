@@ -7,7 +7,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@lo
 
 @app.get("/")
 def index():
-    return {"message": "hello from fastapi"}
+    return {"message": "hello from vmkit"}
 
 @app.get("/health")
 async def health():
