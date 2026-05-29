@@ -72,6 +72,9 @@ jobs:
         DEST: ${{ inputs.dest }}
         DEST_VM_HOST: ${{ steps.resolve.outputs.host }}
         KAMAL_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        PRODUCTION_POSTGRES_PASSWORD: ${{ secrets.PRODUCTION_POSTGRES_PASSWORD }}
+        PRODUCTION_REDIS_URL: ${{ secrets.PRODUCTION_REDIS_URL }}
     - name: Substitute DEST_VM_HOST in Kamal config
       run: sed -i "s|\$DEST_VM_HOST|${DEST_VM_HOST}|g" config/deploy.${DEST}.yml
       env:
